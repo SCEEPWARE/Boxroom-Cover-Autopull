@@ -38,14 +38,21 @@ public class Plugin : BaseUnityPlugin
             
             return method;
         }
+
+        // Needed for Awaitable to complete / else you get an error on second method invocation
+        private static async Awaitable CompletedAsync()
+        {
+            await Awaitable.MainThreadAsync();
+        }
         
         [HarmonyPrefix]
-        static bool Prefix(SteamGameData data)
+        static bool Prefix(SteamGameData data, ref Awaitable __result)
         {
             var fetcher = AccessTools.StaticFieldRefAccess<object>(typeof(SteamLibrarySystem), "fetcher");
             if(fetcher == null)
             {
                 Debug.LogError("Couldn't access fetcher!");
+                __result = CompletedAsync();
                 return true;
             }
             
@@ -54,11 +61,13 @@ public class Plugin : BaseUnityPlugin
             if (fetchMethod == null)
             {
                 Debug.LogError("Couldn't access FetchBoxArtAsync method!");
+                __result = CompletedAsync();
                 return true;
             }
 
             var method = MethodInvoker.GetHandler(fetchMethod, true);
             method.Invoke(fetcher, data);
+            __result = CompletedAsync();
             return false;
         }
     }

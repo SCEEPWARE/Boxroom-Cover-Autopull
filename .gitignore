@@ -1,3 +1,6 @@
 # Build folder
 bin/
 obj/
+
+# User folder
+Folder.DotSettings.user
