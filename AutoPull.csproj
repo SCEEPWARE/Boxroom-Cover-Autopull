@@ -1,10 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>46</TargetFramework>
-    <AssemblyName>AutoPull</AssemblyName>
-    <Product>My first plugin</Product>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>net.SCEEPWARE.AutoPull</AssemblyName>
+    <Product>Boxroom Cover Autopull</Product>
     <Version>0.1.0</Version>
+    <DebugType>Full</DebugType>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
     <RestoreAdditionalProjectSources>
@@ -13,6 +14,9 @@
       https://nuget.samboy.dev/v3/index.json
     </RestoreAdditionalProjectSources>
     <RootNamespace>AutoPull</RootNamespace>
+    <PackageId>net.SCEEPWARE.AutoPull</PackageId>
+    <Company>SCEEPWARE</Company>
+    <Authors>SCEEPWARE</Authors>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,4 +29,11 @@
   <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2" PrivateAssets="all" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>lib/Assembly-CSharp.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  
 </Project>
