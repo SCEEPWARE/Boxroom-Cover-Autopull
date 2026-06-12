@@ -1,11 +1,12 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using System.Reflection;
 using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
 using SteamShelf;
+using SteamShelf.UI;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace AutoPull;
 
@@ -18,16 +19,18 @@ public class Plugin : BaseUnityPlugin
     {
         // Plugin startup logic
         Logger = base.Logger;
-        Logger.LogInfo($"{MyPluginInfo.PLUGIN_GUID} is loaded!");
         
         Harmony harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
+        // patching
         harmony.PatchAll(typeof(FetchPatch));
+        harmony.PatchAll(typeof(MenuPatch));
     }
-
+    
+    // Re-enabling the Fetch method
     [HarmonyPatch]
     class FetchPatch
     {
-        // can't access it directly (class is internal)
+        // can't access it directly (class is internal and method is private)
         [HarmonyTargetMethod]
         static MethodBase TargetMethod()
         {
@@ -78,6 +81,45 @@ public class Plugin : BaseUnityPlugin
             method.Invoke(fetcher, data);
             __result = CompletedAsync();
             return false; // no need to call original method
+        }
+    }
+    
+    // Reset button
+    [HarmonyPatch(typeof(Menu_NoArt))]
+    class MenuPatch
+    {
+        private static GameObject _btnObj;
+        private static Button resetButton;
+
+        [HarmonyTargetMethod]
+        static MethodBase TargetMethod()
+        {
+            var method = AccessTools.Method(typeof(Menu_NoArt), "Start");
+            if(method == null) Logger.LogError("Can't access Start method in Menu_NoArt");
+            return method;
+        }
+
+        [HarmonyPostfix]
+        static void Postfix(Menu_NoArt __instance)
+        {
+            // we clone the "Apply" button, and we change its transform / event listener
+            // too lazy to try to figure out something with assetbundles
+            GameObject _oBtnObj = (AccessTools.Field(typeof(Menu_NoArt), "applyButton").GetValue(__instance) as Button).gameObject;
+            if(!_oBtnObj)
+            {
+                Logger.LogError("Can't get Button data");
+                return;
+            }
+            _btnObj = Instantiate(_oBtnObj, _oBtnObj.transform.parent);
+            _btnObj.transform.position = new Vector3(_btnObj.transform.position.x - 250f, _btnObj.transform.position.y, _btnObj.transform.position.z);
+            
+            resetButton = _btnObj.GetComponent<Button>();
+            resetButton.onClick.RemoveAllListeners();
+            resetButton.interactable = true;
+        }
+
+        private void ClearArt()
+        {
         }
     }
 }
