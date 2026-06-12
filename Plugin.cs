@@ -1,4 +1,6 @@
-﻿using System.Reflection;
+﻿using System;
+using System.IO;
+using System.Reflection;
 using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
@@ -42,18 +44,25 @@ public class Plugin : BaseUnityPlugin
         // Needed for Awaitable to complete / else you get an error on second method invocation
         private static async Awaitable CompletedAsync()
         {
-            await Awaitable.MainThreadAsync();
+            await Awaitable.BackgroundThreadAsync();
         }
         
         [HarmonyPrefix]
-        static bool Prefix(SteamGameData data, ref Awaitable __result)
+        static bool Prefix(SteamGameData data, ref Awaitable __result, object __instance)
         {
+            string path = Traverse.Create(__instance).Method("FullGamePath", data.AppId, "boxart.jpg").GetValue() as string; //check if there's a local file already
+            if (File.Exists(path))
+            {
+                Logger.LogInfo($"Loading User Image for {data.Name} ({data.AppId})");
+                return true; // execute original method if user set custom art. NO WAY TO REMOVE CUSTOM ART FOR NOW.
+            }
+            
             var fetcher = AccessTools.StaticFieldRefAccess<object>(typeof(SteamLibrarySystem), "fetcher");
             if(fetcher == null)
             {
                 Debug.LogError("Couldn't access fetcher!");
                 __result = CompletedAsync();
-                return true;
+                return true; // fallback if fetcher fails for any reason
             }
             
             var fetchMethod =
@@ -68,7 +77,7 @@ public class Plugin : BaseUnityPlugin
             var method = MethodInvoker.GetHandler(fetchMethod, true);
             method.Invoke(fetcher, data);
             __result = CompletedAsync();
-            return false;
+            return false; // no need to call original method
         }
     }
 }
