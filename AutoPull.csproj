@@ -4,7 +4,7 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>net.SCEEPWARE.AutoPull</AssemblyName>
     <Product>Boxroom Cover Autopull</Product>
-    <Version>1.1.1</Version>
+    <Version>1.1.2</Version>
     <DebugType>Full</DebugType>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>

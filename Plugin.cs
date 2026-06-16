@@ -54,10 +54,9 @@ public class Plugin : BaseUnityPlugin
         static bool Prefix(SteamGameData data, ref Awaitable __result, object __instance)
         {
             string path = Traverse.Create(__instance).Method("FullGamePath", data.AppId, "boxart.jpg").GetValue() as string; //check if there's a local file already
-            if (File.Exists(path))
+            if (File.Exists(path)) // it means an image was saved. Either cover was pulled at previous load, or user set custom image
             {
-                Logger.LogInfo($"Loading User Image for {data.Name} ({data.AppId})");
-                return true; // execute original method if user set custom art. NO WAY TO REMOVE CUSTOM ART FOR NOW.
+                return true; 
             }
             
             var fetcher = AccessTools.StaticFieldRefAccess<object>(typeof(SteamLibrarySystem), "fetcher");
@@ -80,6 +79,10 @@ public class Plugin : BaseUnityPlugin
             var method = MethodInvoker.GetHandler(fetchMethod, true);
             method.Invoke(fetcher, data);
             __result = CompletedAsync();
+            /* then we save the data as custom image. I think that's what the wizard does by default (don't know I never used it).
+               so means it should still load pictures when you disable the mod (if you had the game when you used it)
+               and it should support workshop if you share your room. */
+            SteamLibrarySystem.ApplyUserBoxArt(data);
             return false; // no need to call original method
         }
     }
@@ -143,7 +146,6 @@ public class Plugin : BaseUnityPlugin
                     Logger.LogInfo($"Cleared user image for {_data.Name} ({_data.AppId})");   
                 }
             }
-            SteamTextureCache.EvictBoxArt(_data.AppId);
             // then we fetch,
             var fetcher = AccessTools.StaticFieldRefAccess<object>(typeof(SteamLibrarySystem), "fetcher");
             if(fetcher == null)
@@ -160,6 +162,7 @@ public class Plugin : BaseUnityPlugin
             }
             var method = MethodInvoker.GetHandler(fetchMethod, true);
             method.Invoke(fetcher, _data);
+            SteamLibrarySystem.ApplyUserBoxArt(_data);
             // LET'S CLEARFETCH!
         }
     }
