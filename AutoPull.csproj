@@ -34,6 +34,9 @@
     <Reference Include="Assembly-CSharp">
       <HintPath>lib/Assembly-CSharp.dll</HintPath>
     </Reference>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>..\..\..\SteamLibrary\steamapps\common\My Game Room\BOXROOM_Data\Managed\Unity.TextMeshPro.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine.UI">
       <HintPath>..\..\..\SteamLibrary\steamapps\common\My Game Room\BOXROOM_Data\Managed\UnityEngine.UI.dll</HintPath>
     </Reference>

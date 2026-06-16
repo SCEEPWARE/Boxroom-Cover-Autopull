@@ -5,6 +5,7 @@ using BepInEx.Logging;
 using HarmonyLib;
 using SteamShelf;
 using SteamShelf.UI;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -39,7 +40,6 @@ public class Plugin : BaseUnityPlugin
             
             var method = AccessTools.Method(type, "TryLoadBoxArtAsync");
             if (method == null) Logger.LogError("Can't access TryLoadBoxArtAsync method!");
-            else Logger.LogInfo("Patched TryLoadBoxArtAsync successfully!");
             
             return method;
         }
@@ -90,6 +90,8 @@ public class Plugin : BaseUnityPlugin
     {
         private static GameObject _btnObj;
         private static Button resetButton;
+        private static SteamGameData _data;
+        private static Menu_NoArt __instance;
 
         [HarmonyTargetMethod]
         static MethodBase TargetMethod()
@@ -104,22 +106,61 @@ public class Plugin : BaseUnityPlugin
         {
             // we clone the "Apply" button, and we change its transform / event listener
             // too lazy to try to figure out something with assetbundles
-            GameObject _oBtnObj = (AccessTools.Field(typeof(Menu_NoArt), "applyButton").GetValue(__instance) as Button).gameObject;
-            if(!_oBtnObj)
+            MenuPatch.__instance = __instance;
+            GameObject oBtnObj = (AccessTools.Field(typeof(Menu_NoArt), "applyButton").GetValue(__instance) as Button)?.gameObject;
+            if(!oBtnObj)
             {
                 Logger.LogError("Can't get Button data");
                 return;
             }
-            _btnObj = Instantiate(_oBtnObj, _oBtnObj.transform.parent);
+            _btnObj = Instantiate(oBtnObj, oBtnObj.transform.parent);
+            _btnObj.name = "ResetButton";
             _btnObj.transform.position = new Vector3(_btnObj.transform.position.x - 250f, _btnObj.transform.position.y, _btnObj.transform.position.z);
             
             resetButton = _btnObj.GetComponent<Button>();
             resetButton.onClick.RemoveAllListeners();
             resetButton.interactable = true;
+            resetButton.onClick.AddListener(ClearFetchArt);
+            resetButton.GetComponentInChildren<TMP_Text>().SetText("Reset Art");
         }
 
-        private void ClearArt()
+        private static void ClearFetchArt()
         {
+            _data = (SteamGameData)AccessTools.Field(typeof(Menu_NoArt), "currentGame").GetValue(__instance);
+            Logger.LogInfo("Trying to clear art...");
+            // first we clear...
+            var sgc = AccessTools.StaticFieldRefAccess<object>(typeof(SteamLibrarySystem), "ownedCache");
+            string path = Traverse.Create(sgc).Method("FullGamePath", _data.AppId, "boxart.jpg").GetValue() as string;
+            if (File.Exists(path))
+            {
+                if (path == null)
+                {
+                    Logger.LogError("Path is null!");
+                }
+                else
+                {
+                    File.Delete(path);
+                    Logger.LogInfo($"Cleared user image for {_data.Name} ({_data.AppId})");   
+                }
+            }
+            SteamTextureCache.EvictBoxArt(_data.AppId);
+            // then we fetch,
+            var fetcher = AccessTools.StaticFieldRefAccess<object>(typeof(SteamLibrarySystem), "fetcher");
+            if(fetcher == null)
+            {
+                Debug.LogError("Couldn't access fetcher!");
+                return;
+            }
+            var fetchMethod =
+                AccessTools.Method(AccessTools.TypeByName("SteamShelf.SteamStoreFetcher"), "FetchBoxArtAsync");
+            if (fetchMethod == null)
+            {
+                Debug.LogError("Couldn't access FetchBoxArtAsync method!");
+                return;
+            }
+            var method = MethodInvoker.GetHandler(fetchMethod, true);
+            method.Invoke(fetcher, _data);
+            // LET'S CLEARFETCH!
         }
     }
 }
